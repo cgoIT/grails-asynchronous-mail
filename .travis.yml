@@ -4,24 +4,25 @@ jdk:
 - openjdk11
 cache:
   directories:
-    - ".autoconf"
-    - "$HOME/.m2"
-    - "$HOME/.cache"
+  - ".autoconf"
+  - "$HOME/.m2"
+  - "$HOME/.cache"
 script: "./gradlew clean check assemble"
 jobs:
   include:
-    - stage: Deploy to bintray
-      jdk: openjdk8
-      script: skip
-      if: tag IS present
-      deploy:
-        provider: script
-        script: "./gradlew bintrayUpload"
-        on:
-          tag: true
-          all_branches: true
+  - stage: Deploy to bintray
+    jdk: openjdk8
+    script: skip
+    if: tag IS present
+    deploy:
+      provider: script
+      script: "./gradlew bintrayUpload"
+      on:
+        tag: true
+        all_branches: true
 env:
   global:
-    - GIT_NAME="Carsten Götzinger"
-    - GIT_EMAIL="info@cgo-it.de"
-
+  - GIT_NAME="Carsten Götzinger"
+  - GIT_EMAIL="info@cgo-it.de"
+  - secure: o+18g3k031LDtqnAfJ7rTN6wtbeRyoYP6JaAO+l02w8aZNyOqd3GBjshyGXJcPAzbt5Qi0tip5LTbbEsccFkSlt8DjdqFXRZ3N42mhmcRJLGqjmAHYVGJGg4aqnVZzjgRh6WQOO4Zq8+0LXWupWAsBzGr2woRrm+7AJ2VqfaVZyr/EvJ+PD49JppaSmK3KZpmD2xxDEqLCcvwQnS66SpTkjEtJvvJZUv4eycWRYtOYEIWXSNW+EdJ7g/gJyvUyUx/aeaT4lY3mSWmEYMun1nB/uNxjQNN35u6IYEMjmsLKpN821lyzjbGVBL2TqL8ybvAfK3RPJFRcrhKvnXHV392zVsTCCAZPJoGRggBkzh4NPdhA3RDlnyw2bnUz3OrNfjj3BsTZ75zREJq9HheHKVOTp9zIDFoU6IdIaOVO7Mf0AIQr65myHC38EZdN1GvDnEd8JGCkb79/+G8v1UzSmp0NoFSsM8ZZDVKdUKqp3yolB6RHm4HQc6Dwjm2TU7jniuJUT0k1gxYvtNpX5yLUFBuohhFUxQDgjGwir/3Pkld4KKJN/dEYBIO810zsxaMGSWAqVXzFqe99Fvcz4maHP1MW5ebLyVOGfcOzfIFDNVdU+uA2jwK8j/K/S2Zg2dNUDYlxsKAGOEJTyeDa53yQoaTFuREVirWDmE6QdwFrc+evY=
+  - secure: h5Nf6hkehTBaVbn/cAj4eo4c3zft7Atc+U3fXXcNu3RJqx2d1wbK5d7Zfm4zduLD1RZLI6x5tZ6IvWHdfa4u/0BuV+6xefQ8LS3IviZccP8B/9AgzwVVl3SeH8BGQ5zGSqMQaOMy0coh1/1Vl3yOYOkacfVfQBMzeX4/lyqbt7Y6CKpqrsUa65Ms6OywA4DWHM5ZQsPZ/Ke6nVLQz1/fwh8NAM1p/ipnzmCPHtJ9ahXGaxBWSo2+8eI0//wrs1NXxsqbeUa19k7vd1BK2oFJuRyqRoLgGASCjFK9RD5+ZAk81i2/18tUP4enk1ysTx2jz0bpuPeFYO4a79b7a5o3ABgbVXduYpQw4sshtzAJ0AW2EJvoKP7qun1OORZalaGC0oe3FWAj7VJQLx71QjCU4Sza/MlZyE7dbl9j+Fs133JfpRecZvY3yULLHaf/VnoMnC0o1QtohyQ4pRT4nuScg0xJwYws/CcRSE54eVlAwo8WdIxZcQkcvcNEXlzNV9iLA5L3rOM2JwWgKtYDHmGPIFM6t3SYv6jtkjFeE3oHpkAUeLqw4HbPNu/5Ug/nchnTyc2AXBvxCdVtWX+QBaG4dQ6iJAC1Uwo7Z7QBrUNyr2sTyUe5Oo3ETkmpY4FmshQymA6MtppdsDWnaBYf8zbVhnQvEBkljhzJzTQ6UQRK9gA=
