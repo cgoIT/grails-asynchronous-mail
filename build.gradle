@@ -5,27 +5,65 @@ buildscript {
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsVersion"
-        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.14.2"
+        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:3.0.10"
     }
 }
 
-version "2.0.2"
+plugins {
+    id "com.jfrog.bintray" version "1.8.5"
+}
+
+version projectVersion
 group "org.grails.plugins"
 
 apply plugin: 'idea'
 apply plugin:"org.grails.grails-plugin"
 apply plugin:"org.grails.grails-plugin-publish"
 apply plugin:"org.grails.grails-gsp"
+apply plugin: 'maven-publish'
 apply plugin:"asset-pipeline"
 
 ext {
     grailsVersion = project.grailsVersion
     gradleWrapperVersion = project.gradleWrapperVersion
+    repoName = rootProject.name
 }
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenLocal()
     maven { url "https://repo.grails.org/grails/core" }
+}
+
+allprojects { proj ->
+    tasks.withType(JavaCompile) {
+        //I don't believe those warnings add value given modern IDEs
+        options.warnings = false
+        options.encoding = 'UTF-8'
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.grails:grails-bom:$grailsVersion"
+    }
+    applyMavenExclusions false
+}
+
+jar {
+    exclude "test/**"
+    exclude "test/**/**"
+}
+
+sourcesJar {
+    exclude "test/**"
+    exclude "test/**/**"
+
+    classifier = 'sources'
 }
 
 dependencies {
@@ -44,9 +82,9 @@ dependencies {
     provided "org.grails:grails-plugin-domain-class"
 
     testCompile "org.grails:grails-gorm-testing-support"
-    testCompile "net.bytebuddy:byte-buddy:1.7.9"
+    testCompile "net.bytebuddy:byte-buddy:1.10.13"
     testCompile "org.grails.plugins:hibernate5"
-    testCompile "com.h2database:h2:1.4.196"
+    testCompile "com.h2database:h2:1.4.200"
 
     compile "org.grails.plugins:mail:2.0.0"
     compile "org.grails.plugins:quartz:2.0.13"
@@ -60,29 +98,27 @@ task wrapper(type: Wrapper) {
     gradleVersion = gradleWrapperVersion
 }
 
-grailsPublish {
-    userOrg = 'kefirsf'
-    license {
-        name = 'Apache-2.0'
+bintray {
+    user = System.getenv("BINTRAY_USER") ?: project.bintrayUser
+    key = System.getenv("BINTRAY_KEY") ?: project.bintrayKey
+
+    publications = ['maven']
+
+    publish = true
+
+    pkg {
+        repo = 'maven'
+        name = project.name
+        websiteUrl = "https://github.com/cgoIT/$repoName"
+        issueTrackerUrl = "https://github.com/cgoIT/$repoName/issues"
+        vcsUrl = "https://github.com/cgoIT/${repoName}.git"
+        licenses = ['Apache-2.0']
+        labels = ['grails', 'plugin', 'grails-plugin', 'mail', 'async', repoName]
+        version {
+            name = project.version
+            attributes = ['grails-plugin': "$project.group:$project.name"]
+        }
     }
-    websiteUrl = 'https://grails.org/plugins.html#plugin/asynchronous-mail'
-    issueTrackerUrl = 'https://github.com/kefirfromperm/grails-asynchronous-mail/issues'
-    vcsUrl = 'https://github.com/kefirfromperm/grails-asynchronous-mail.git'
-    title = "Grails Asynchronous Mail plugin"
-    desc = "The plugin realises asynchronous mail sending. It stores messages in a DB and sends them asynchronously by a quartz job."
-    developers = [
-            kefirfromperm:"Vitalii Samolovskikh",
-            stokito:"Sergey Ponomarev",
-            ilopmar:"Iván López",
-            burtbeckwith:"Burt Beckwith",
-            puneetbehl:"Puneet Behl",
-            aberbenni:"Alessandro Berbenni",
-            dpcasady:"Danny Casady",
-            SAgrawal14:"Shashank Agrawal",
-            visheshd:"Vishesh",
-            'micke-a':"Mikael Andersson",
-            pgdoval:"Pablo González Doval",
-            Uniqen:"Magnus Dalin",
-            demon101:"Demon"
-    ]
 }
+
+bintrayUpload.dependsOn = [sourcesJar]

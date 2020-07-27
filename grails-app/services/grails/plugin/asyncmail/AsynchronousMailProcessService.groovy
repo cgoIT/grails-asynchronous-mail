@@ -39,21 +39,23 @@ class AsynchronousMailProcessService {
 
             for (int i = 0; i < taskCount; i++) {
                 promises << task {
-                    AsynchronousMailMessage.withNewSession {
-                        Long messageId
-                        while ((messageId = idsQueue.poll()) != null) {
-                            try {
-                                processEmailMessage(messageId)
-                            } catch (Exception e) {
-                                log.error(
-                                        "An exception was thrown when attempt to send a message with id=${messageId}.",
-                                        e
-                                )
+                    AsynchronousMailMessage.withNewTransaction {
+                        AsynchronousMailMessage.withNewSession {
+                            Long messageId
+                            while ((messageId = idsQueue.poll()) != null) {
+                                try {
+                                    processEmailMessage(messageId)
+                                } catch (Exception e) {
+                                    log.error(
+                                            "An exception was thrown when attempt to send a message with id=${messageId}.",
+                                            e
+                                    )
+                                }
                             }
-                        }
 
-                        if (!asynchronousMailConfigService.useFlushOnSave) {
-                            asynchronousMailPersistenceService.flush()
+                            if (!asynchronousMailConfigService.useFlushOnSave) {
+                                asynchronousMailPersistenceService.flush()
+                            }
                         }
                     }
                 }

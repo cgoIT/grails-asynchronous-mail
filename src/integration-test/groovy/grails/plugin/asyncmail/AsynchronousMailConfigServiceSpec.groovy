@@ -21,7 +21,7 @@ class AsynchronousMailConfigServiceSpec extends Specification {
             !asynchronousMailConfigService.clearAfterSent
             !asynchronousMailConfigService.disable
             asynchronousMailConfigService.useFlushOnSave
-            asynchronousMailConfigService.persistenceProvider == 'hibernate4'
+            asynchronousMailConfigService.persistenceProvider == 'hibernate5'
             !asynchronousMailConfigService.newSessionOnImmediateSend
             asynchronousMailConfigService.taskPoolSize == 1
             !asynchronousMailConfigService.mongo
