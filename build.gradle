@@ -99,9 +99,6 @@ task wrapper(type: Wrapper) {
 }
 
 bintray {
-    user = System.getenv("BINTRAY_API_USER") ?: project.bintrayUser
-    key = System.getenv("BINTRAY_API_KEY") ?: project.bintrayKey
-
     publications = ['maven']
 
     publish = true
@@ -119,6 +116,19 @@ bintray {
             attributes = ['grails-plugin': "$project.group:$project.name"]
         }
     }
+}
+
+grailsPublish {
+    githubSlug = "cgoIT/$repoName"
+    license {
+        name = 'Apache-2.0'
+    }
+    title = "Grails Asynchronous Mail Plugin"
+    desc = "Grails Asynchronous Mail Plugin"
+    websiteUrl = "https://github.com/cgoIT/$repoName"
+    issueTrackerUrl = "https://github.com/cgoIT/$repoName/issues"
+    vcsUrl = "https://github.com/cgoIT/${repoName}.git"
+    developers = [cgoIT:"Carsten Götzinger"]
 }
 
 bintrayUpload.dependsOn = [sourcesJar]

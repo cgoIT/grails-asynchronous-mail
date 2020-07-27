@@ -1,5 +1,6 @@
 package grails.plugin.asyncmail
 
+import grails.gorm.transactions.Transactional
 import grails.async.Promises
 import grails.plugin.asyncmail.enums.MessageStatus
 import groovy.transform.CompileStatic
@@ -14,6 +15,7 @@ import static grails.async.Promises.task
 
 @Slf4j
 @CompileStatic
+@Transactional
 class AsynchronousMailProcessService {
 
     AsynchronousMailPersistenceService asynchronousMailPersistenceService
@@ -39,23 +41,21 @@ class AsynchronousMailProcessService {
 
             for (int i = 0; i < taskCount; i++) {
                 promises << task {
-                    AsynchronousMailMessage.withNewTransaction {
-                        AsynchronousMailMessage.withNewSession {
-                            Long messageId
-                            while ((messageId = idsQueue.poll()) != null) {
-                                try {
-                                    processEmailMessage(messageId)
-                                } catch (Exception e) {
-                                    log.error(
-                                            "An exception was thrown when attempt to send a message with id=${messageId}.",
-                                            e
-                                    )
-                                }
+                    AsynchronousMailMessage.withNewSession {
+                        Long messageId
+                        while ((messageId = idsQueue.poll()) != null) {
+                            try {
+                                processEmailMessage(messageId)
+                            } catch (Exception e) {
+                                log.error(
+                                        "An exception was thrown when attempt to send a message with id=${messageId}.",
+                                        e
+                                )
                             }
+                        }
 
-                            if (!asynchronousMailConfigService.useFlushOnSave) {
-                                asynchronousMailPersistenceService.flush()
-                            }
+                        if (!asynchronousMailConfigService.useFlushOnSave) {
+                            asynchronousMailPersistenceService.flush()
                         }
                     }
                 }
@@ -70,63 +70,65 @@ class AsynchronousMailProcessService {
     }
 
     void processEmailMessage(long messageId) {
-        boolean useFlushOnSave = asynchronousMailConfigService.useFlushOnSave
+        AsynchronousMailMessage.withTransaction {
+            boolean useFlushOnSave = asynchronousMailConfigService.useFlushOnSave
 
-        AsynchronousMailMessage message = asynchronousMailPersistenceService.getMessage(messageId)
+            AsynchronousMailMessage message = asynchronousMailPersistenceService.getMessage(messageId)
 
-        if (!message) {
-            log.error("Can't find message with id=${messageId}.")
-            return
-        }
-
-        log.trace("Got a message: " + message.toString())
-
-        Date now = new Date()
-        Date attemptDate = new Date(now.getTime() - message.attemptInterval)
-        boolean canAttempt = message.hasAttemptedStatus() && message.lastAttemptDate.before(attemptDate)
-        if (message.hasCreatedStatus() || canAttempt) {
-            message.lastAttemptDate = now
-            message.attemptsCount++
-
-            // Guarantee that e-mail can't be sent more than 1 time
-            message.status = MessageStatus.ERROR
-            asynchronousMailPersistenceService.save(message, useFlushOnSave, false)
-
-            // Validate message
-            if (!message.validate()) {
-                message.errors.allErrors.each {
-                    log.error(it as String)
-                }
+            if (!message) {
+                log.error("Can't find message with id=${messageId}.")
                 return
             }
 
-            // Attempt to send
-            try {
-                log.trace("An attempt to send the message with id=${message.id}.")
-                asynchronousMailSendService.send(message)
-                message.sentDate = now
-                message.status = MessageStatus.SENT
-                log.trace("The message with id=${message.id} was sent successfully.")
-            } catch (MailException e) {
-                log.warn("An attempt to send the message with id=${message.id} was failed.", e)
-                canAttempt = message.attemptsCount < message.maxAttemptsCount
-                boolean fatalException = e instanceof MailParseException || e instanceof MailPreparationException
-                if (canAttempt && !fatalException) {
-                    message.status = MessageStatus.ATTEMPTED
-                }
-            } finally {
-                asynchronousMailPersistenceService.save(message, useFlushOnSave, false)
-            }
+            log.trace("Got a message: " + message.toString())
 
-            // Delete message if it is sent successfully and can be deleted
-            if (message.hasSentStatus() && message.markDelete) {
-                asynchronousMailPersistenceService.delete(message, useFlushOnSave)
-                log.trace("The message with id=${messageId} was deleted.")
-            } else if (message.hasSentStatus() && message.markDeleteAttachments) {
-                asynchronousMailPersistenceService.deleteAttachments(message, useFlushOnSave)
-                log.trace("The message with id=${messageId} had all its attachments deleted.")
-            } else {
-                log.trace("The message with id=${messageId} will not be deleted.")
+            Date now = new Date()
+            Date attemptDate = new Date(now.getTime() - message.attemptInterval)
+            boolean canAttempt = message.hasAttemptedStatus() && message.lastAttemptDate.before(attemptDate)
+            if (message.hasCreatedStatus() || canAttempt) {
+                message.lastAttemptDate = now
+                message.attemptsCount++
+
+                // Guarantee that e-mail can't be sent more than 1 time
+                message.status = MessageStatus.ERROR
+                asynchronousMailPersistenceService.save(message, useFlushOnSave, false)
+
+                // Validate message
+                if (!message.validate()) {
+                    message.errors.allErrors.each {
+                        log.error(it as String)
+                    }
+                    return
+                }
+
+                // Attempt to send
+                try {
+                    log.trace("An attempt to send the message with id=${message.id}.")
+                    asynchronousMailSendService.send(message)
+                    message.sentDate = now
+                    message.status = MessageStatus.SENT
+                    log.trace("The message with id=${message.id} was sent successfully.")
+                } catch (MailException e) {
+                    log.warn("An attempt to send the message with id=${message.id} was failed.", e)
+                    canAttempt = message.attemptsCount < message.maxAttemptsCount
+                    boolean fatalException = e instanceof MailParseException || e instanceof MailPreparationException
+                    if (canAttempt && !fatalException) {
+                        message.status = MessageStatus.ATTEMPTED
+                    }
+                } finally {
+                    asynchronousMailPersistenceService.save(message, useFlushOnSave, false)
+                }
+
+                // Delete message if it is sent successfully and can be deleted
+                if (message.hasSentStatus() && message.markDelete) {
+                    asynchronousMailPersistenceService.delete(message, useFlushOnSave)
+                    log.trace("The message with id=${messageId} was deleted.")
+                } else if (message.hasSentStatus() && message.markDeleteAttachments) {
+                    asynchronousMailPersistenceService.deleteAttachments(message, useFlushOnSave)
+                    log.trace("The message with id=${messageId} had all its attachments deleted.")
+                } else {
+                    log.trace("The message with id=${messageId} will not be deleted.")
+                }
             }
         }
     }

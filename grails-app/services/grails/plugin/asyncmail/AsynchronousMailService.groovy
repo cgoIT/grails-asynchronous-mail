@@ -1,11 +1,13 @@
 package grails.plugin.asyncmail
 
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.springframework.validation.ObjectError
 
 @Slf4j
 @CompileStatic
+@Transactional
 class AsynchronousMailService {
     AsynchronousMailPersistenceService asynchronousMailPersistenceService
     AsynchronousMailMessageBuilderFactory asynchronousMailMessageBuilderFactory
@@ -41,8 +43,10 @@ class AsynchronousMailService {
         // Save message to DB
 		def savedMessage = null
 		if(immediately && asynchronousMailConfigService.newSessionOnImmediateSend) {
-            AsynchronousMailMessage.withNewSession {
-                savedMessage = asynchronousMailPersistenceService.save(message, true, true)
+            AsynchronousMailMessage.withTransaction {
+                AsynchronousMailMessage.withNewSession {
+                    savedMessage = asynchronousMailPersistenceService.save(message, true, true)
+                }
             }
         } else {
             savedMessage = asynchronousMailPersistenceService.save(message, true, true)

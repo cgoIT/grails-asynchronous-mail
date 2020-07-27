@@ -1,9 +1,11 @@
 package grails.plugin.asyncmail
 
+import grails.gorm.transactions.Transactional
 import grails.plugin.asyncmail.enums.MessageStatus
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
+@Transactional
 @Slf4j
 class AsynchronousMailPersistenceService {
 
@@ -83,8 +85,10 @@ class AsynchronousMailPersistenceService {
     }
 
     void flush() {
-        AsynchronousMailMessage.withSession { session ->
-            session.flush()
+        AsynchronousMailMessage.withTransaction {
+            AsynchronousMailMessage.withSession { session ->
+                session.flush()
+            }
         }
     }
 }

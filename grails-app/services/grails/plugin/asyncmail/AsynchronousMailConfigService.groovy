@@ -1,8 +1,10 @@
 package grails.plugin.asyncmail
 
+import grails.gorm.transactions.Transactional
 import grails.config.Config
 import grails.core.support.GrailsConfigurationAware
 
+@Transactional
 class AsynchronousMailConfigService implements GrailsConfigurationAware {
     Config configuration
 
