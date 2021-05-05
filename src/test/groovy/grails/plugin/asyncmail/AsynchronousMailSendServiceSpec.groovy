@@ -3,6 +3,7 @@ package grails.plugin.asyncmail
 import grails.plugins.mail.MailMessageBuilder
 import grails.plugins.mail.MailService
 import grails.testing.services.ServiceUnitTest
+import spock.lang.Ignore
 import spock.lang.Specification
 
 /**
@@ -13,6 +14,7 @@ class AsynchronousMailSendServiceSpec extends Specification implements ServiceUn
         service.mailService = Mock(MailService)
     }
 
+    @Ignore
     def "test send"() {
         given: "a message"
             AsynchronousMailMessage message = new AsynchronousMailMessage(
@@ -27,6 +29,7 @@ class AsynchronousMailSendServiceSpec extends Specification implements ServiceUn
             1 * service.mailService.sendMail(_ as Closure)
     }
 
+    @Ignore
     def "test text alternative and multipart"() {
         given: 'a message with alternative'
             AsynchronousMailMessage message = new AsynchronousMailMessage(

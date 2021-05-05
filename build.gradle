@@ -9,10 +9,6 @@ buildscript {
     }
 }
 
-plugins {
-    id "com.jfrog.bintray" version "1.8.5"
-}
-
 version projectVersion
 group "org.grails.plugins"
 
@@ -27,6 +23,9 @@ ext {
     grailsVersion = project.grailsVersion
     gradleWrapperVersion = project.gradleWrapperVersion
     repoName = rootProject.name
+    nexusBase = "https://nexus.cgo-it.de/repository"
+    nexusUsername = System.getenv("NEXUS_USER") ?: rootProject.cgoitNexusUsername
+    nexusPassword = System.getenv("NEXUS_PASSWORD") ?: rootProject.cgoitNexusPassword
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -100,22 +99,26 @@ task wrapper(type: Wrapper) {
     gradleVersion = gradleWrapperVersion
 }
 
-bintray {
-    publications = ['maven']
+publishing.repositories {
+    maven {
+        credentials {
+            username "${nexusUsername}"
+            password "${nexusPassword}"
+        }
 
-    publish = true
+        def releasesRepoUrl = "$nexusBase/grails-plugins"
+        def snapshotsRepoUrl = "$nexusBase/grails-plugins-snapshots"
+        url = "SNAPSHOT" in project.version ? snapshotsRepoUrl : releasesRepoUrl
+    }
+}
 
-    pkg {
-        repo = 'maven'
-        name = project.name
-        websiteUrl = "https://github.com/cgoIT/$repoName"
-        issueTrackerUrl = "https://github.com/cgoIT/$repoName/issues"
-        vcsUrl = "https://github.com/cgoIT/${repoName}.git"
-        licenses = ['Apache-2.0']
-        labels = ['grails', 'plugin', 'grails-plugin', 'mail', 'async', repoName]
-        version {
-            name = project.version
-            attributes = ['grails-plugin': "$project.group:$project.name"]
+publishing.publications {
+    asyncMail(MavenPublication) {
+        afterEvaluate {
+            artifactId = project.name
+            version project.version
+            from components.java
+            artifact sourcesJar
         }
     }
 }
@@ -133,4 +136,4 @@ grailsPublish {
     developers = [cgoIT:"Carsten Götzinger"]
 }
 
-bintrayUpload.dependsOn = [sourcesJar]
+publish.dependsOn = [sourcesJar, build]
