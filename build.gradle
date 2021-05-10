@@ -99,6 +99,9 @@ task wrapper(type: Wrapper) {
     gradleVersion = gradleWrapperVersion
 }
 
+// enable if you wish to package this plugin as a standalone application
+bootRepackage.enabled = false
+
 publishing.repositories {
     maven {
         credentials {
